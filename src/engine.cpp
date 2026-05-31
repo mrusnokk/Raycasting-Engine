@@ -226,21 +226,46 @@ Engine::Engine(int width, int height)
             playerPainChannels = channels;
         }
 
+        samples = stb_vorbis_decode_filename("assets/SOUNDS/step.ogg", &channels, &sample_rate, &decoded_data);
+        if (samples > 0 && decoded_data) {
+            stepAudioData = decoded_data;
+            stepAudioSamples = samples * channels;
+            stepAudioRate = sample_rate;
+            stepAudioChannels = channels;
+            SDL_AudioSpec spec = { SDL_AUDIO_S16LE, channels, sample_rate };
+            stepAudioStream = SDL_CreateAudioStream(&spec, nullptr);
+            if (stepAudioStream) SDL_BindAudioStream(audioDevice, stepAudioStream);
+        }
+
+        samples = stb_vorbis_decode_filename("assets/SOUNDS/door.ogg", &channels, &sample_rate, &decoded_data);
+        if (samples > 0 && decoded_data) {
+            doorAudioData = decoded_data;
+            doorAudioSamples = samples * channels;
+            doorAudioRate = sample_rate;
+            doorAudioChannels = channels;
+            SDL_AudioSpec spec = { SDL_AUDIO_S16LE, channels, sample_rate };
+            doorAudioStream = SDL_CreateAudioStream(&spec, nullptr);
+            if (doorAudioStream) SDL_BindAudioStream(audioDevice, doorAudioStream);
+        }
+
     }
 }
 
 Engine::~Engine()
 {
     saveHighScore();
-    if (weaponAudioStream) {
-        SDL_DestroyAudioStream(weaponAudioStream);
-    }
+    if (weaponAudioStream) SDL_DestroyAudioStream(weaponAudioStream);
+    if (stepAudioStream) SDL_DestroyAudioStream(stepAudioStream);
+    if (doorAudioStream) SDL_DestroyAudioStream(doorAudioStream);
+
     if (audioDevice) {
         SDL_CloseAudioDevice(audioDevice);
     }
-    if (weaponAudioData) {
-        free(weaponAudioData);
-    }
+    
+    if (weaponAudioData) free(weaponAudioData);
+    if (playerPainData) free(playerPainData);
+    if (stepAudioData) free(stepAudioData);
+    if (doorAudioData) free(doorAudioData);
 
     if (frameTexture)
         SDL_DestroyTexture(frameTexture);
@@ -287,8 +312,16 @@ void Engine::processInput(double deltaTime) {
                     if (worldMap[targetX][targetY] == 4) {
                         if (doorStates[targetX][targetY] == 0) {
                             doorStates[targetX][targetY] = 1; // Začne otevírat
+                            if (doorAudioStream && doorAudioData) {
+                                SDL_PutAudioStreamData(doorAudioStream, doorAudioData, doorAudioSamples * sizeof(short));
+                                SDL_FlushAudioStream(doorAudioStream);
+                            }
                         } else if (doorStates[targetX][targetY] == 2) {
                             doorStates[targetX][targetY] = 3; // Začne zavírat
+                            if (doorAudioStream && doorAudioData) {
+                                SDL_PutAudioStreamData(doorAudioStream, doorAudioData, doorAudioSamples * sizeof(short));
+                                SDL_FlushAudioStream(doorAudioStream);
+                            }
                         }
                     }
                 }
@@ -704,11 +737,20 @@ void Engine::processInput(double deltaTime) {
             }
         }
 
-        // --- AKTUALIZACE HOUPÁNÍ ZBRANĚ ---
+        // --- AKTUALIZACE HOUPÁNÍ ZBRANĚ A CHŮZE ---
         if (isMoving) {
             weaponBobTime += deltaTime;
+            stepTimer -= deltaTime;
+            if (stepTimer <= 0.0) {
+                if (stepAudioStream && stepAudioData) {
+                    SDL_PutAudioStreamData(stepAudioStream, stepAudioData, stepAudioSamples * sizeof(short));
+                    SDL_FlushAudioStream(stepAudioStream);
+                }
+                stepTimer = 0.5; // Krok každých 0.5s
+            }
         } else {
             weaponBobTime = 0; // Plynulý návrat do klidu
+            stepTimer = 0.0;
         }
 
         // --- AKTUALIZACE DVEŘÍ ---
@@ -727,10 +769,13 @@ void Engine::processInput(double deltaTime) {
                         if (doorOffsets[x][y] <= 0.0) {
                             doorOffsets[x][y] = 0.0;
                             doorStates[x][y] = 0; // Plně zavřeno
+                            if (doorAudioStream && doorAudioData) {
+                                SDL_PutAudioStreamData(doorAudioStream, doorAudioData, doorAudioSamples * sizeof(short));
+                                SDL_FlushAudioStream(doorAudioStream);
+                            }
                         }
                     }
                 }
-            }
             }
         }
         
@@ -789,7 +834,7 @@ void Engine::processInput(double deltaTime) {
                 }
             }
         }
-
+    } // END of if (currentState == GameState::PLAYING)
 
     // Časovač game over (musí běžet nezávisle na PLAYING stavu)
     if (gameOverTimer > 0) gameOverTimer -= deltaTime;

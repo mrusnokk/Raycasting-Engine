@@ -97,6 +97,19 @@ private:
     int weaponAudioRate = 44100;
     int weaponAudioChannels = 1;
 
+    short* stepAudioData = nullptr;
+    int stepAudioSamples = 0;
+    int stepAudioRate = 44100;
+    int stepAudioChannels = 1;
+    SDL_AudioStream* stepAudioStream = nullptr;
+    double stepTimer = 0.0;
+
+    short* doorAudioData = nullptr;
+    int doorAudioSamples = 0;
+    int doorAudioRate = 44100;
+    int doorAudioChannels = 1;
+    SDL_AudioStream* doorAudioStream = nullptr;
+
     short* playerPainData = nullptr;
     int playerPainSamples = 0;
     int playerPainRate = 44100;
