@@ -385,9 +385,9 @@ void Engine::processInput(double deltaTime) {
         if (currentState == GameState::PLAYING && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT) {
             if (!isShooting && player.hp > 0) {
                 isShooting = true;
-                shootTimer = (weaponFrames.size() > 1) ? 0.2 : 0.15; // Rychlá střelba pro automat
+                shootTimer = (weaponFrames.size() > 1) ? 0.25 : 0.2; // Celkový čas (výstřel + cooldown)
                 if (weaponFrames.size() > 1) {
-                    weaponFrameIndex = 1;
+                    weaponFrameIndex = 1; // Snímek záblesku
                     weaponAnimTimer = 0.0;
                 }
 
@@ -485,12 +485,9 @@ void Engine::processInput(double deltaTime) {
             } else {
                 if (weaponFrames.size() > 1) {
                     weaponAnimTimer += deltaTime;
-                    if (weaponAnimTimer >= WEAPON_ANIM_SPEED) {
-                        weaponAnimTimer = 0.0;
-                        weaponFrameIndex++;
-                        if (weaponFrameIndex >= weaponFrames.size()) {
-                            weaponFrameIndex = weaponFrames.size() - 1;
-                        }
+                    // Snímek výstřelu zobrazíme jen na krátkou dobu (např. 0.08s) a pak se vrátíme do idle, ale střílet dál nejde dokud nedoběhne shootTimer
+                    if (weaponAnimTimer >= 0.08 && weaponFrameIndex != 0) {
+                        weaponFrameIndex = 0;
                     }
                 }
             }
