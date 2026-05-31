@@ -139,14 +139,7 @@ Engine::Engine(int width, int height)
     if (!loadTex("ceil.png", ceilTexture)) {
         for(int i=0;i<TEX_WIDTH*TEX_HEIGHT;i++) ceilTexture[i]=0xFF222222;
     }
-    if (!loadTex("enemy.png", enemyTexture)) {
-        // Fallback pro nepřítele (červený čtverec uprostřed)
-        for(int x=0;x<TEX_WIDTH;x++){
-            for(int y=0;y<TEX_HEIGHT;y++){
-                enemyTexture[TEX_HEIGHT*y+x] = (x>16&&x<48&&y>16&&y<48) ? 0xFFFF0000 : 0;
-            }
-        }
-    }
+
 
     // Načtení UI textur a Death Screen s dynamickou velikostí
     auto loadDynTex = [](const char* path, std::vector<uint32_t>& tex, int& w, int& h, bool autoTransparent = false) {
@@ -201,8 +194,6 @@ Engine::Engine(int width, int height)
             break; // Konec sekvence
         }
     }
-    
-    loadDynTex("hud.png", hudTexture, hudTexWidth, hudTexHeight);
     loadDynTex("menu_bg.png", menuBgTexture, menuBgTexWidth, menuBgTexHeight);
     loadDynTex("death_screen.png", deathTexture, deathTexWidth, deathTexHeight);
 
@@ -978,45 +969,12 @@ void Engine::render() {
 
 
         // --- C. VYKRESLENÍ HUDu ---
-        if (!hudTexture.empty() && hudTexWidth > 0 && hudTexHeight > 0) {
-            // Originální DOOM HUD má 320x32. Pokud je textura větší (atlas), ořízneme ji.
-            int cropW = (hudTexWidth >= 320) ? 320 : hudTexWidth;
-            int cropH = (hudTexHeight >= 32) ? 32 : hudTexHeight;
-            
-            int hudW = screenWidth;
-            int hudH = (screenWidth * cropH) / cropW; // Zachováme správný poměr stran
-            int startY = screenHeight - hudH;
-            
-            for (int y = 0; y < hudH; y++) {
-                for (int x = 0; x < hudW; x++) {
-                    int drawX = x;
-                    int drawY = startY + y;
-                    if (drawX >= 0 && drawX < screenWidth && drawY >= 0 && drawY < screenHeight) {
-                        int srcX = (x * cropW) / hudW;
-                        int srcY = (y * cropH) / hudH;
-                        uint32_t color = hudTexture[srcY * hudTexWidth + srcX];
-                        if ((color & 0xFF000000) != 0) {
-                            framebuffer[drawY * screenWidth + drawX] = color;
-                        }
-                    }
-                }
-            }
-
-            // Vykreslení textu HP tak, aby sedělo zhruba do políčka vlevo
-            // Políčko v původním DOOM HUDu je zhruba na 10% až 30% šířky obrazovky
-            std::string hpStr = std::to_string(player.hp) + "%";
-            drawText(hpStr, screenWidth * 0.12, screenHeight - (hudH * 0.6), 0xFF00FF00, 3);
-            std::string scoreStr = "SCORE: " + std::to_string(playerScore);
-            drawText(scoreStr, screenWidth - (scoreStr.length() * 10 * 3) - 20, screenHeight - (hudH * 0.6), 0xFF00FFFF, 3);
-        } else {
-            // Fallback HUD
-            drawRect(20, screenHeight - 40, 200, 20, 0xFFFF0000); 
-            int hpWidth = (player.hp > 0) ? (player.hp * 2) : 0;
-            drawRect(20, screenHeight - 40, hpWidth, 20, 0xFF00FF00); 
-            drawText("HP: " + std::to_string(player.hp), 25, screenHeight - 38, 0xFFFFFFFF, 2);
-            std::string scoreStr = "SCORE: " + std::to_string(playerScore);
-            drawText(scoreStr, screenWidth - (scoreStr.length() * 10 * 2) - 20, screenHeight - 38, 0xFF00FFFF, 2);
-        }
+        drawRect(20, screenHeight - 40, 200, 20, 0xFFFF0000); 
+        int hpWidth = (player.hp > 0) ? (player.hp * 2) : 0;
+        drawRect(20, screenHeight - 40, hpWidth, 20, 0xFF00FF00); 
+        drawText("HP: " + std::to_string(player.hp), 25, screenHeight - 38, 0xFFFFFFFF, 2);
+        std::string scoreStr = "SCORE: " + std::to_string(playerScore);
+        drawText(scoreStr, screenWidth - (scoreStr.length() * 10 * 2) - 20, screenHeight - 38, 0xFF00FFFF, 2);
 
         // Zčervenání obrazovky při zranění
         if (playerDamageTimer > 0) {

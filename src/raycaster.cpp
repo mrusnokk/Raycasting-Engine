@@ -238,7 +238,7 @@ void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidt
 
         int texWidth = TEX_WIDTH;
         int texHeight = TEX_HEIGHT;
-        const uint32_t* texturePtr = enemyTexture;
+        const uint32_t* texturePtr = nullptr;
         
         int type = sprites[spriteIdx].type;
         const std::vector<SpriteFrame>* animFrames = nullptr;
@@ -263,6 +263,8 @@ void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidt
             texHeight = sf.h;
             texturePtr = sf.pixels.data();
         }
+
+        if (!texturePtr) continue;
 
         for(int stripe = drawStartX; stripe < drawEndX; stripe++) {
             int texX = int(256 * (stripe - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;

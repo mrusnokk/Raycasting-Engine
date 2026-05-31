@@ -21,7 +21,6 @@ enum class GameState {
 inline uint32_t textures[5][TEX_WIDTH * TEX_HEIGHT];
 inline uint32_t floorTexture[TEX_WIDTH * TEX_HEIGHT];
 inline uint32_t ceilTexture[TEX_WIDTH * TEX_HEIGHT];
-inline uint32_t enemyTexture[TEX_WIDTH * TEX_HEIGHT];
 
 #include "Sprite.hpp"
 
@@ -80,9 +79,6 @@ private:
     int weaponFrameIndex = 0;
     double weaponAnimTimer = 0.0;
     double WEAPON_ANIM_SPEED = 0.05;
-
-    std::vector<uint32_t> hudTexture;
-    int hudTexWidth = 0, hudTexHeight = 0;
 
     std::vector<uint32_t> menuBgTexture;
     int menuBgTexWidth = 0, menuBgTexHeight = 0;
