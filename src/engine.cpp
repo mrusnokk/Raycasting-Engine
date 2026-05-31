@@ -791,7 +791,7 @@ void Engine::processInput(double deltaTime) {
                 }
             }
         }
-    }
+
 
     // Časovač game over (musí běžet nezávisle na PLAYING stavu)
     if (gameOverTimer > 0) gameOverTimer -= deltaTime;
