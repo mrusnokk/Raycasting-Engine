@@ -112,7 +112,7 @@ Engine::Engine(int width, int height)
     };
 
     // Načtení externích textur
-    if (!loadTex("wall.png", textures[1])) {
+    if (!loadTex("assets/wall.png", textures[1])) {
         // Fallback, pokud textura chybí
         for (int x = 0; x < TEX_WIDTH; x++) {
             for (int y = 0; y < TEX_HEIGHT; y++) {
@@ -121,10 +121,10 @@ Engine::Engine(int width, int height)
             }
         }
     }
-    loadTex("wall.png", textures[2]);
-    loadTex("wall.png", textures[3]);
+    loadTex("assets/wall.png", textures[2]);
+    loadTex("assets/wall.png", textures[3]);
     
-    if (!loadTex("door.png", textures[4])) {
+    if (!loadTex("assets/door.png", textures[4])) {
         // Fallback pro dveře (žlutý čtverec, aby byly nápadné)
         for (int x = 0; x < TEX_WIDTH; x++) {
             for (int y = 0; y < TEX_HEIGHT; y++) {
@@ -133,10 +133,10 @@ Engine::Engine(int width, int height)
         }
     }
     
-    if (!loadTex("floor.png", floorTexture)) {
+    if (!loadTex("assets/floor.png", floorTexture)) {
         for(int i=0;i<TEX_WIDTH*TEX_HEIGHT;i++) floorTexture[i]=0xFF444444;
     }
-    if (!loadTex("ceil.png", ceilTexture)) {
+    if (!loadTex("assets/ceil.png", ceilTexture)) {
         for(int i=0;i<TEX_WIDTH*TEX_HEIGHT;i++) ceilTexture[i]=0xFF222222;
     }
 
@@ -178,9 +178,9 @@ Engine::Engine(int width, int height)
         }
     };
     
-    // Zbraň - načítání jednotlivých framů z AUT9 (A až Z)
-    for (char c = 'A'; c <= 'Z'; c++) {
-        std::string filename = "SPRITES/AUT9" + std::string(1, c) + "0.png";
+    // Zbraň - načítání jednotlivých framů z AUT9 (A a B pro střelbu)
+    for (char c = 'A'; c <= 'B'; c++) {
+        std::string filename = "assets/SPRITES/WEAPONS/AUT9" + std::string(1, c) + "0.png";
         std::vector<uint32_t> frameTex;
         int frameW = 0, frameH = 0;
         loadDynTex(filename.c_str(), frameTex, frameW, frameH, true);
@@ -194,8 +194,8 @@ Engine::Engine(int width, int height)
             break; // Konec sekvence
         }
     }
-    loadDynTex("menu_bg.png", menuBgTexture, menuBgTexWidth, menuBgTexHeight);
-    loadDynTex("death_screen.png", deathTexture, deathTexWidth, deathTexHeight);
+    loadDynTex("assets/menu_bg.png", menuBgTexture, menuBgTexWidth, menuBgTexHeight);
+    loadDynTex("assets/death_screen.png", deathTexture, deathTexWidth, deathTexHeight);
 
     // --- AUDIO SYSTEM ---
     audioDevice = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
@@ -385,7 +385,7 @@ void Engine::processInput(double deltaTime) {
         if (currentState == GameState::PLAYING && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT) {
             if (!isShooting && player.hp > 0) {
                 isShooting = true;
-                shootTimer = (weaponFrames.size() > 1) ? (weaponFrames.size() * WEAPON_ANIM_SPEED) : 0.15;
+                shootTimer = (weaponFrames.size() > 1) ? 0.2 : 0.15; // Rychlá střelba pro automat
                 if (weaponFrames.size() > 1) {
                     weaponFrameIndex = 1;
                     weaponAnimTimer = 0.0;

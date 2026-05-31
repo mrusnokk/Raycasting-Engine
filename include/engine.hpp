@@ -36,7 +36,7 @@ public:
     bool isWalkable(int x, int y);
 
 private:
-    GameState currentState = GameState::PLAYING;
+    GameState currentState = GameState::MENU;
     int menuSelection = 0;
     bool isFullscreen = false;
 
