@@ -756,9 +756,12 @@ void Engine::processInput(double deltaTime) {
                 }
                 
                 if (found) {
-                    // Find a dead sprite or add new one
-                    int spawnType = rand() % enemyTypes.size();
-                    bool reused = false;
+                    if (enemyTypes.empty()) {
+                        enemySpawnTimer = 4.0; // Zkus to znovu později
+                    } else {
+                        // Find a dead sprite or add new one
+                        int spawnType = rand() % enemyTypes.size();
+                        bool reused = false;
                     for (auto& s : sprites) {
                         if (s.state == -1 && !s.isProjectile) {
                             s.x = sX + 0.5;
@@ -775,9 +778,10 @@ void Engine::processInput(double deltaTime) {
                             break;
                         }
                     }
-                    if (!reused && sprites.size() < 100) {
-                        // Create new
-                        sprites.push_back({sX + 0.5, sY + 0.5, 0, spawnType, enemyTypes[spawnType].maxHp, 1, 0.0, sX + 0.5, sY + 0.5, 0.0, 0.0, 0, 0.0, false});
+                        if (!reused && sprites.size() < 100) {
+                            // Create new
+                            sprites.push_back({sX + 0.5, sY + 0.5, 0, spawnType, enemyTypes[spawnType].maxHp, 1, 0.0, sX + 0.5, sY + 0.5, 0.0, 0.0, 0, 0.0, false});
+                        }
                     }
                 }
             }
