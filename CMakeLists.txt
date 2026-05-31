@@ -32,12 +32,4 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# Automatické zkopírování .png obrázků ze složky assets do složky build po úspěšné kompilaci
-file(GLOB PNG_FILES "${CMAKE_SOURCE_DIR}/assets/*.png")
-if(PNG_FILES)
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${PNG_FILES}
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    )
-endif()
+# (Zkopírování assetů jsme odstranili, protože VS Code spouští hru z hlavní složky)

@@ -268,10 +268,16 @@ void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidt
 
         for(int stripe = drawStartX; stripe < drawEndX; stripe++) {
             int texX = int(256 * (stripe - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;
+            if (texX < 0) texX = 0;
+            if (texX >= texWidth) texX = texWidth - 1;
+            
             if (transformY > 0 && stripe > 0 && stripe < screenWidth && transformY < zBuffer[stripe]) {
                 for(int y = drawStartY; y < drawEndY; y++) {
                     int d = (y - vMoveScreen) * 256 - screenHeight * 128 + spriteHeight * 128;
                     int texY = ((d * texHeight) / spriteHeight) / 256;
+                    if (texY < 0) texY = 0;
+                    if (texY >= texHeight) texY = texHeight - 1;
+                    
                     uint32_t color = texturePtr[texWidth * texY + texX];
                     if ((color & 0xFF000000) != 0) {
                         framebuffer[y * screenWidth + stripe] = color;
