@@ -385,7 +385,13 @@ void Engine::processInput(double deltaTime) {
         if (currentState == GameState::PLAYING && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT) {
             if (!isShooting && player.hp > 0) {
                 isShooting = true;
-                shootTimer = (weaponFrames.size() > 1) ? 0.25 : 0.2; // Celkový čas (výstřel + cooldown)
+                
+                double audioDuration = 0.25; // Default fallback
+                if (weaponAudioRate > 0 && weaponAudioChannels > 0) {
+                    audioDuration = (double)(weaponAudioSamples / weaponAudioChannels) / weaponAudioRate;
+                }
+                shootTimer = (weaponFrames.size() > 1) ? audioDuration : 0.2; // Celkový čas (výstřel + cooldown)
+                
                 if (weaponFrames.size() > 1) {
                     weaponFrameIndex = 1; // Snímek záblesku
                     weaponAnimTimer = 0.0;
