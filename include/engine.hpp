@@ -94,6 +94,7 @@ private:
      * @brief Načítá všechny statické a dynamické textury do paměti.
      */
     void loadTextures();
+    void resetGame();
 
     /**
      * @brief Načítá všechny zvukové efekty (STB Vorbis) do paměti.
@@ -132,13 +133,17 @@ private:
     double playerDamageTimer = 0.0;
     double gameOverTimer = 0.0;
 // UI textury (dynamické velikosti)
-    std::vector<SpriteFrame> weaponFrames;
-    std::vector<std::vector<SpriteFrame>> allWeaponFrames;
+    struct WeaponDef {
+        std::vector<SpriteFrame> idleFrames;
+        std::vector<SpriteFrame> shootFrames;
+    };
+    std::vector<WeaponDef> weapons;
+
     std::vector<EnemyDef> enemyTypes;
     std::vector<ItemDef> itemTypes;
     void loadEnemyDef(const std::string& directoryPath, EnemyDef& def);
-    void loadWeaponDef(const std::string& directoryPath, std::vector<SpriteFrame>& frames);
     std::vector<std::vector<SpriteFrame>> projectileTypes;
+    void fireWeapon();
     int weaponFrameIndex = 0;
     double weaponAnimTimer = 0.0;
     double WEAPON_ANIM_SPEED = 0.05;
@@ -155,10 +160,10 @@ private:
     SDL_AudioStream* activeStreams[8] = {nullptr};
     int currentAudioStream = 0;
     void playSound(short* data, int samples, int sampleRate = 44100, int channels = 1);
-    short* weaponAudioData = nullptr;
-    int weaponAudioSamples = 0;
-    int weaponAudioRate = 44100;
-    int weaponAudioChannels = 1;
+    short* weaponAudioData[5] = {nullptr};
+    int weaponAudioSamples[5] = {0};
+    int weaponAudioRate[5] = {44100, 44100, 44100, 44100, 44100};
+    int weaponAudioChannels[5] = {1, 1, 1, 1, 1};
 
     short* stepAudioData = nullptr;
     int stepAudioSamples = 0;

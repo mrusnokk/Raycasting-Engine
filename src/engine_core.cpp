@@ -19,17 +19,15 @@ Engine::Engine(int width, int height)
     
     setGlobalVolume(globalVolume);
 
-    if (!weaponFrames.empty() && !weaponFrames[0].pixels.empty()) {
-        weaponAnimTimer = 0.0;
-        weaponFrameIndex = 0;
-    }
+    // Zbraně se nyní animují vždy, proto resetujeme časovač a snímek
+    weaponAnimTimer = 0.0;
+    weaponFrameIndex = 0;
 }
 
 Engine::~Engine()
 {
     saveHighScore();
     saveSettings();
-    if (weaponAudioStream) SDL_DestroyAudioStream(weaponAudioStream);
     if (stepAudioStream) SDL_DestroyAudioStream(stepAudioStream);
     if (doorAudioStream) SDL_DestroyAudioStream(doorAudioStream);
 
@@ -37,7 +35,9 @@ Engine::~Engine()
         SDL_CloseAudioDevice(audioDevice);
     }
     
-    if (weaponAudioData) free(weaponAudioData);
+    for (int i = 0; i < 5; i++) {
+        if (weaponAudioData[i]) free(weaponAudioData[i]);
+    }
     if (playerPainData) free(playerPainData);
     if (stepAudioData) free(stepAudioData);
     if (doorAudioData) free(doorAudioData);

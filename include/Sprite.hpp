@@ -6,6 +6,9 @@ struct SpriteFrame {
     std::vector<uint32_t> pixels;
     int w;
     int h;
+    int offsetX = 0;
+    int offsetY = 0;
+    bool hasOffset = false;
 };
 
 struct EnemyDef {

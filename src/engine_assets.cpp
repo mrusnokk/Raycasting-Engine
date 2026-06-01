@@ -69,29 +69,20 @@ void Engine::loadTextures() {
     EnemyDef type0; loadEnemyDef("assets/SPRITES/ENEMIES/Agaures", type0); type0.maxHp = 100; type0.scoreValue = 100; if (!type0.idleFrames.empty()) enemyTypes.push_back(type0);
     EnemyDef type1; loadEnemyDef("assets/SPRITES/ENEMIES/Cacobite", type1); type1.maxHp = 200; type1.scoreValue = 300; if (!type1.idleFrames.empty()) enemyTypes.push_back(type1);
     EnemyDef type2; loadEnemyDef("assets/SPRITES/ENEMIES/Arachnobaron", type2); type2.maxHp = 300; type2.scoreValue = 500; if (!type2.idleFrames.empty()) enemyTypes.push_back(type2);
-    sprites = {
-        {8.5, 8.5, 0, 0, 100, 1, 0.0, 8.5, 8.5, 0.0, 0.0, 0, 0.0},
-        {10.5, 9.5, 0, 0, 100, 1, 0.0, 10.5, 9.5, 0.0, 0.0, 0, 0.0},
-        {13.5, 3.5, 0, 0, 100, 1, 0.0, 13.5, 3.5, 0.0, 0.0, 0, 0.0},
-        {22.5, 15.5, 0, 1, 200, 1, 0.0, 22.5, 15.5, 0.0, 0.0, 0, 0.0},
-        {20.5, 20.5, 0, 1, 200, 1, 0.0, 20.5, 20.5, 0.0, 0.0, 0, 0.0},
-        {5.5, 25.5, 0, 0, 100, 1, 0.0, 5.5, 25.5, 0.0, 0.0, 0, 0.0},
-        {15.5, 28.5, 0, 1, 200, 1, 0.0, 15.5, 28.5, 0.0, 0.0, 0, 0.0},
-        {28.5, 4.5, 0, 2, 300, 1, 0.0, 28.5, 4.5, 0.0, 0.0, 0, 0.0},
-    };
+    resetGame();
 
     // Pevně dané pozice pro předměty (typ: 0=Medkit, 1=Ammo, 2=Chaingun, 3=Coachgun)
     struct ItemSpawn { double x, y; int type; };
     std::vector<ItemSpawn> spawns = {
         // Medkit (3x)
-        {2.5, 2.5, 0}, {15.5, 8.5, 0}, {15.5, 21.5, 0},
+        {2.5, 2.5, 0}, {15.5, 6.5, 0}, {15.5, 21.5, 0},
         // Ammo (6x)
         {10.5, 2.5, 1}, {5.5, 15.5, 1}, {28.5, 28.5, 1},
         {16.5, 2.5, 1}, {27.5, 2.5, 1}, {20.5, 15.5, 1},
         // Chaingun (1x)
         {5.5, 21.5, 2},
         // Coachgun (1x)
-        {10.5, 15.5, 3}
+        {12.5, 15.5, 3}
     };
     
     for (const auto& spawn : spawns) {
@@ -152,7 +143,34 @@ void Engine::loadTextures() {
 
 
     // Načtení UI textur a Death Screen s dynamickou velikostí
-    auto loadDynTex = [](const char* path, std::vector<uint32_t>& tex, int& w, int& h, bool autoTransparent = false) {
+    auto loadDynTex = [](const char* path, std::vector<uint32_t>& tex, int& w, int& h, int& ox, int& oy, bool& hasOffset, bool autoTransparent = false) {
+        ox = 0; oy = 0; hasOffset = false;
+        FILE* f = fopen(path, "rb");
+        if (f) {
+            uint8_t magic[8];
+            if (fread(magic, 1, 8, f) == 8 && magic[0] == 0x89) {
+                while (!feof(f)) {
+                    uint32_t length;
+                    if (fread(&length, 4, 1, f) != 1) break;
+                    length = (length >> 24) | ((length >> 8) & 0xFF00) | ((length << 8) & 0xFF0000) | (length << 24);
+                    char chunkType[5] = {0};
+                    if (fread(chunkType, 1, 4, f) != 1) break;
+                    if (strcmp(chunkType, "grAb") == 0 && length == 8) {
+                        int32_t tx, ty;
+                        fread(&tx, 4, 1, f);
+                        fread(&ty, 4, 1, f);
+                        ox = (tx >> 24) | ((tx >> 8) & 0xFF00) | ((tx << 8) & 0xFF0000) | (tx << 24);
+                        oy = (ty >> 24) | ((ty >> 8) & 0xFF00) | ((ty << 8) & 0xFF0000) | (ty << 24);
+                        hasOffset = true;
+                        break;
+                    } else {
+                        fseek(f, length + 4, SEEK_CUR);
+                    }
+                }
+            }
+            fclose(f);
+        }
+
         int channels;
         unsigned char* data = stbi_load(path, &w, &h, &channels, 4);
         if (data) {
@@ -189,39 +207,50 @@ void Engine::loadTextures() {
     };
     
     // Načítání zbraní
-    auto loadWpn = [&](const std::string& pathPrefix, std::vector<SpriteFrame>& frames, char startC, char endC) {
-        for (char c = startC; c <= endC; c++) {
-            std::string filename = pathPrefix + std::string(1, c) + "0.png";
-            std::vector<uint32_t> frameTex;
-            int frameW = 0, frameH = 0;
-            loadDynTex(filename.c_str(), frameTex, frameW, frameH, true);
-            if (!frameTex.empty()) {
-                SpriteFrame sf; sf.pixels = frameTex; sf.w = frameW; sf.h = frameH;
-                frames.push_back(sf);
-            } else { break; }
-        }
+    auto loadWpn = [&](const std::string& pathPrefix, WeaponDef& wd, char idleStart, char idleEnd, char shootStart, char shootEnd) {
+        auto loadFrames = [&](char startC, char endC, std::vector<SpriteFrame>& frames) {
+            for (char c = startC; c <= endC; c++) {
+                std::string filename = pathPrefix + std::string(1, c) + "0.png";
+                std::vector<uint32_t> frameTex;
+                int frameW = 0, frameH = 0, ox = 0, oy = 0; bool hasO = false;
+                loadDynTex(filename.c_str(), frameTex, frameW, frameH, ox, oy, hasO, true);
+                if (!frameTex.empty()) {
+                    SpriteFrame sf; sf.pixels = frameTex; sf.w = frameW; sf.h = frameH; sf.offsetX = ox; sf.offsetY = oy; sf.hasOffset = hasO;
+                    frames.push_back(sf);
+                } else { break; }
+            }
+        };
+        loadFrames(idleStart, idleEnd, wd.idleFrames);
+        loadFrames(shootStart, shootEnd, wd.shootFrames);
+        if (wd.idleFrames.empty() && !wd.shootFrames.empty()) wd.idleFrames.push_back(wd.shootFrames[0]);
+        if (wd.shootFrames.empty() && !wd.idleFrames.empty()) wd.shootFrames.push_back(wd.idleFrames[0]);
     };
     
-    std::vector<SpriteFrame> w0, w1, w2, w3;
-    loadWpn("assets/SPRITES/WEAPONS/AUT9", w0, 'A', 'B'); // Pistol
-    loadWpn("assets/newGuns/chaingun/HCGF", w1, 'A', 'B'); // Chaingun
-    loadWpn("assets/newGuns/coachgun/COCH", w2, 'A', 'B'); // Coachgun
-    loadWpn("assets/newGuns/skeletonrevange/sprites/skeletalrevenge/BOGU", w3, 'A', 'B'); // Skeleton
+    WeaponDef w0, w1, w2, w3;
+    loadWpn("assets/SPRITES/WEAPONS/AUT9", w0, 'A', 'A', 'B', 'E'); // Pistol
+    loadWpn("assets/newGuns/chaingun/HCG", w1, 'G', 'G', 'F', 'F'); // Chaingun base
+    loadWpn("assets/newGuns/coachgun/COCH", w2, 'A', 'A', 'B', 'X'); // Coachgun
+    loadWpn("assets/newGuns/skeletonrevange/sprites/skeletalrevenge/BOGU", w3, 'A', 'A', 'B', 'B'); // Skeleton
     
-    allWeaponFrames.push_back(w0);
-    allWeaponFrames.push_back(w1);
-    allWeaponFrames.push_back(w2);
-    allWeaponFrames.push_back(w3);
-    
-    if (!allWeaponFrames[0].empty()) weaponFrames = allWeaponFrames[0];
+    // Specifické úpravy pro chaingun, protože jména jsou HCGGA0-HCGGD0 a HCGFA0-HCGFF0
+    w1.idleFrames.clear(); w1.shootFrames.clear();
+    loadWpn("assets/newGuns/chaingun/HCGG", w1, 'A', 'D', 'A', 'D'); // Použijeme HCGG prefix pro idle (A-D) jako workaround
+    WeaponDef w1Shoot;
+    loadWpn("assets/newGuns/chaingun/HCGF", w1Shoot, 'A', 'F', 'A', 'F'); // HCGF prefix pro shoot (A-F)
+    w1.shootFrames = w1Shoot.shootFrames;
+
+    weapons.push_back(w0);
+    weapons.push_back(w1);
+    weapons.push_back(w2);
+    weapons.push_back(w3);
 
     // Načítání předmětů
     auto loadItem = [&](const std::string& path, ItemType type, int amount, int wpnId = -1) {
         ItemDef idf; idf.type = type; idf.amount = amount; idf.weaponId = wpnId;
-        std::vector<uint32_t> frameTex; int frameW = 0, frameH = 0;
-        loadDynTex(path.c_str(), frameTex, frameW, frameH, true);
+        std::vector<uint32_t> frameTex; int frameW = 0, frameH = 0, ox = 0, oy = 0; bool hasO = false;
+        loadDynTex(path.c_str(), frameTex, frameW, frameH, ox, oy, hasO, true);
         if (!frameTex.empty()) {
-            SpriteFrame sf; sf.pixels = frameTex; sf.w = frameW; sf.h = frameH;
+            SpriteFrame sf; sf.pixels = frameTex; sf.w = frameW; sf.h = frameH; sf.offsetX = ox; sf.offsetY = oy; sf.hasOffset = hasO;
             idf.frames.push_back(sf);
             itemTypes.push_back(idf);
         }
@@ -231,8 +260,9 @@ void Engine::loadTextures() {
     loadItem("assets/items/ammo.png", ItemType::AMMO, 20);
     loadItem("assets/newGuns/chaingun/HCNGA0.png", ItemType::WEAPON, 20, 1); // Zbraň 1 + 20 nábojů
     loadItem("assets/newGuns/coachgun/COCPA0.png", ItemType::WEAPON, 8, 2); // Zbraň 2 + 8 nábojů
-    loadDynTex("assets/menu_bg.png", menuBgTexture, menuBgTexWidth, menuBgTexHeight);
-    loadDynTex("assets/death_screen.png", deathTexture, deathTexWidth, deathTexHeight);
+    int ox = 0, oy = 0; bool hasO = false;
+    loadDynTex("assets/menu_bg.png", menuBgTexture, menuBgTexWidth, menuBgTexHeight, ox, oy, hasO);
+    loadDynTex("assets/death_screen.png", deathTexture, deathTexWidth, deathTexHeight, ox, oy, hasO);
 
     // --- AUDIO SYSTEM ---
 
@@ -242,22 +272,27 @@ void Engine::loadAudio() {
     audioDevice = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, nullptr);
     if (audioDevice) {
         SDL_ResumeAudioDevice(audioDevice);
+
+        auto loadWpnAudio = [&](int index, const std::string& path) {
+            int channels = 0, sample_rate = 0;
+            short* decoded_data = nullptr;
+            int samples = stb_vorbis_decode_filename(path.c_str(), &channels, &sample_rate, &decoded_data);
+            if (samples > 0 && decoded_data) {
+                weaponAudioData[index] = decoded_data;
+                weaponAudioSamples[index] = samples * channels;
+                weaponAudioRate[index] = sample_rate;
+                weaponAudioChannels[index] = channels;
+            }
+        };
+
+        loadWpnAudio(0, "assets/SOUNDS/AUT9FIRC.ogg");
+        loadWpnAudio(1, "assets/newGuns/chaingun/m_gun1.ogg");
+        loadWpnAudio(2, "assets/newGuns/coachgun/DSCOCHFG.ogg");
+        loadWpnAudio(3, "assets/newGuns/skeletonrevange/sounds/skeletalrevenge/REVFIRE.ogg");
+
         int channels = 0, sample_rate = 0;
         short* decoded_data = nullptr;
-                int samples = stb_vorbis_decode_filename("assets/SOUNDS/AUT9FIRC.ogg", &channels, &sample_rate, &decoded_data);
-        if (samples <= 0) samples = stb_vorbis_decode_filename("SOUNDS/AUT9FIRC.ogg", &channels, &sample_rate, &decoded_data);
-        if (samples > 0 && decoded_data) {
-            weaponAudioData = decoded_data;
-            weaponAudioSamples = samples * channels;
-            weaponAudioRate = sample_rate;
-            weaponAudioChannels = channels;
-            SDL_AudioSpec spec;
-            spec.format = SDL_AUDIO_S16LE;
-            spec.channels = channels;
-            spec.freq = sample_rate;
-            weaponAudioStream = SDL_CreateAudioStream(&spec, nullptr);
-            if (weaponAudioStream) SDL_BindAudioStream(audioDevice, weaponAudioStream);
-        }
+        int samples = 0;
         samples = stb_vorbis_decode_filename("assets/SOUNDS/AGURPAIN.ogg", &channels, &sample_rate, &decoded_data);
         if (samples <= 0) samples = stb_vorbis_decode_filename("SOUNDS/AGURPAIN.ogg", &channels, &sample_rate, &decoded_data);
         if (samples > 0 && decoded_data) {

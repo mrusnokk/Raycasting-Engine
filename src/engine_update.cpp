@@ -150,9 +150,8 @@ void Engine::handleEvents(double deltaTime) {
         // --- PŘEPÍNÁNÍ ZBRANÍ ---
         if (currentState == GameState::PLAYING && event.type == SDL_EVENT_KEY_DOWN) {
             auto swp = [&](int id) {
-                if (id < allWeaponFrames.size() && player.hasWeapon[id]) {
+                if (id < weapons.size() && player.hasWeapon[id]) {
                     player.currentWeapon = id;
-                    if (!allWeaponFrames[id].empty()) weaponFrames = allWeaponFrames[id];
                 }
             };
             if (event.key.scancode == SDL_SCANCODE_1) swp(0);
@@ -163,120 +162,15 @@ void Engine::handleEvents(double deltaTime) {
 
         // --- STŘELBA ---
         if (currentState == GameState::PLAYING && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT) {
-            int wpn = player.currentWeapon;
-            if (!isShooting && player.hp > 0 && (player.ammo[wpn] > 0 || player.ammo[wpn] == -1)) {
-                if (player.ammo[wpn] > 0) {
-                    player.ammo[wpn]--;
-                    if (wpn == 2) player.ammo[wpn]--; // Coachgun bere 2
-                    if (player.ammo[wpn] < 0) player.ammo[wpn] = 0;
-                }
-                isShooting = true;
-                
-                double audioDuration = 0.25; // Default fallback
-                if (weaponAudioRate > 0 && weaponAudioChannels > 0) {
-                    audioDuration = (double)(weaponAudioSamples / weaponAudioChannels) / weaponAudioRate;
-                }
-                shootTimer = (weaponFrames.size() > 1) ? audioDuration : 0.2; // Celkový čas (výstřel + cooldown)
-                
-                if (weaponFrames.size() > 1) {
-                    weaponFrameIndex = 1; // Snímek záblesku
-                    weaponAnimTimer = 0.0;
-                }
-
-                // Přehrajeme zvuk výstřelu
-                if (weaponAudioStream && weaponAudioData) {
-                    SDL_PutAudioStreamData(weaponAudioStream, weaponAudioData, weaponAudioSamples * sizeof(short));
-                    SDL_FlushAudioStream(weaponAudioStream);
-                    SDL_FlushAudioStream(weaponAudioStream);
-                }
-
-                // Hitscan
-                for (auto& sprite : sprites) {
-                    if (sprite.state <= 0) continue;
-                    if (sprite.isProjectile) continue;
-                    if (sprite.isItem) continue;
-                    
-                    double spriteX = sprite.x - player.x;
-                    double spriteY = sprite.y - player.y;
-
-                    double invDet = 1.0 / (player.planeX * player.dirY - player.dirX * player.planeY);
-                    double transformX = invDet * (player.dirY * spriteX - player.dirX * spriteY);
-                    double transformY = invDet * (-player.planeY * spriteX + player.planeX * spriteY);
-
-                    if (transformY > 0) {
-                        int spriteScreenX = int((screenWidth / 2) * (1 + transformX / transformY));
-                        int spriteWidth = std::abs(int(screenHeight / transformY));
-                        
-                        // Zkontrolujeme, jestli je střed obrazovky uvnitř šířky spritu
-                        if (screenWidth / 2 > spriteScreenX - spriteWidth / 2 && screenWidth / 2 < spriteScreenX + spriteWidth / 2) {
-                            if (transformY < 15.0) { // Dostřel
-                                // Kontrola, jestli mezi námi a nepřítelem není zeď
-                                bool hitWall = false;
-                                double dxLine = sprite.x - player.x;
-                                double dyLine = sprite.y - player.y;
-                                double dist = std::sqrt(dxLine*dxLine + dyLine*dyLine);
-                                int steps = std::max(1, (int)(dist * 10)); // Krokujeme po 0.1 jednotkách
-                                for (int i = 0; i <= steps; i++) {
-                                    double cx = player.x + dxLine * ((double)i / steps);
-                                    double cy = player.y + dyLine * ((double)i / steps);
-                                    if (!isWalkable((int)cx, (int)cy)) {
-                                        hitWall = true;
-                                        break;
-                                    }
-                                }
-                                
-                                if (!hitWall) {
-                                    sprite.hp -= 35;
-                                    sprite.damageTimer = 0.2; 
-                                    if (sprite.hp <= 0 && sprite.state != 0) {
-                                        playerScore += enemyTypes[sprite.type].scoreValue;
-                                        sprite.state = 0; 
-                                        sprite.animTimer = 0;
-                                        sprite.frameIndex = 0;
-                                        sprite.deadTimer = 5.0; // 5 sekund do respawnu
-                                        if (sprite.type >= 0 && sprite.type < enemyTypes.size()) {
-                                            playSound(enemyTypes[sprite.type].soundDeath, enemyTypes[sprite.type].soundDeathSamples, enemyTypes[sprite.type].soundDeathRate, enemyTypes[sprite.type].soundDeathChannels);
-                                        }
-                                    } else if (sprite.hp > 0 && sprite.state != 0) {
-                                        sprite.state = 2; // Pain state
-                                        sprite.animTimer = 0;
-                                        sprite.frameIndex = 0;
-                                        if (sprite.type >= 0 && sprite.type < enemyTypes.size()) {
-                                            playSound(enemyTypes[sprite.type].soundPain, enemyTypes[sprite.type].soundPainSamples, enemyTypes[sprite.type].soundPainRate, enemyTypes[sprite.type].soundPainChannels);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            if (player.currentWeapon != 1) { // Chaingun se řeší v updatePlayer
+                fireWeapon();
             }
         }
+
         
         if (currentState == GameState::GAME_OVER) {
             if (gameOverTimer <= 0 && (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_KEY_DOWN)) {
-                // Resetování hry a návrat do MENU
-                player.hp = 100;
-                player.x = 2.0;
-                player.y = 2.0;
-                player.z = 0;
-                player.vz = 0;
-                player.dirX = -1.0;
-                player.dirY = 0.0;
-                player.planeX = 0.0;
-                player.planeY = 0.66;
-                playerDamageTimer = 0.0;
-                playerScore = 0;
-                enemySpawnTimer = 4.0;
-                
-                for (auto& sprite : sprites) {
-                    sprite.state = 1;
-                    sprite.hp = 100;
-                    sprite.x = sprite.spawnX;
-                    sprite.y = sprite.spawnY;
-                    sprite.deadTimer = 0;
-                    sprite.damageTimer = 0;
-                }
+                resetGame();
                 currentState = GameState::MENU;
                 SDL_SetWindowRelativeMouseMode(window, false);
             }
@@ -289,6 +183,13 @@ void Engine::handleEvents(double deltaTime) {
 }
 
 void Engine::updatePlayer(double deltaTime) {
+        int wpn = player.currentWeapon;
+        if (wpn == 1 && !isShooting) { // Kontinuální střelba pro Chaingun
+            if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) {
+                fireWeapon();
+            }
+        }
+
         if (isShooting) {
             shootTimer -= deltaTime;
             if (shootTimer <= 0) {
@@ -296,12 +197,20 @@ void Engine::updatePlayer(double deltaTime) {
                 shootTimer = 0.0;
                 weaponFrameIndex = 0;
             } else {
-                if (weaponFrames.size() > 1) {
-                    weaponAnimTimer += deltaTime;
-                    // Snímek výstřelu zobrazíme jen na krátkou dobu (např. 0.08s) a pak se vrátíme do idle, ale střílet dál nejde dokud nedoběhne shootTimer
-                    if (weaponAnimTimer >= 0.08 && weaponFrameIndex != 0) {
-                        weaponFrameIndex = 0;
+                weaponAnimTimer += deltaTime;
+                while (weaponAnimTimer >= WEAPON_ANIM_SPEED) {
+                    weaponAnimTimer -= WEAPON_ANIM_SPEED;
+                    if (wpn >= 0 && wpn < weapons.size() && !weapons[wpn].shootFrames.empty()) {
+                        weaponFrameIndex = (weaponFrameIndex + 1) % weapons[wpn].shootFrames.size();
                     }
+                }
+            }
+        } else {
+            weaponAnimTimer += deltaTime;
+            while (weaponAnimTimer >= WEAPON_ANIM_SPEED * 2.0) { // Idle může být pomalejší
+                weaponAnimTimer -= WEAPON_ANIM_SPEED * 2.0;
+                if (wpn >= 0 && wpn < weapons.size() && !weapons[wpn].idleFrames.empty()) {
+                    weaponFrameIndex = (weaponFrameIndex + 1) % weapons[wpn].idleFrames.size();
                 }
             }
         }
@@ -715,4 +624,158 @@ bool Engine::isWalkable(int x, int y) {
     if (worldMap[x][y] == 0) return true;
     if (worldMap[x][y] == 4 && doorStates[x][y] == 2) return true; // Open door
     return false;
+}
+
+
+void Engine::fireWeapon() {
+    int wpn = player.currentWeapon;
+    if (!isShooting && player.hp > 0 && (player.ammo[wpn] > 0 || player.ammo[wpn] == -1)) {
+        if (player.ammo[wpn] > 0) {
+            player.ammo[wpn]--;
+            if (wpn == 2) player.ammo[wpn]--; // Coachgun bere 2
+            if (player.ammo[wpn] < 0) player.ammo[wpn] = 0;
+        }
+        isShooting = true;
+        
+        double audioDuration = 0.25;
+        if (weaponAudioRate[wpn] > 0 && weaponAudioChannels[wpn] > 0) {
+            audioDuration = (double)(weaponAudioSamples[wpn] / weaponAudioChannels[wpn]) / weaponAudioRate[wpn];
+        }
+        shootTimer = audioDuration;
+        if (wpn == 1) shootTimer = 0.1; // Chaingun rapid fire
+        if ((wpn == 0 || wpn == 2) && !weapons[wpn].shootFrames.empty()) {
+            shootTimer = weapons[wpn].shootFrames.size() * WEAPON_ANIM_SPEED; // Delší cooldown pro reload
+        }
+        
+        weaponFrameIndex = 0;
+        weaponAnimTimer = 0.0;
+        
+        if (weaponAudioData[wpn]) {
+            playSound(weaponAudioData[wpn], weaponAudioSamples[wpn], weaponAudioRate[wpn], weaponAudioChannels[wpn]);
+        }
+        
+        // Hitscan
+        for (auto& sprite : sprites) {
+            if (sprite.state <= 0) continue;
+            if (sprite.isProjectile) continue;
+            if (sprite.isItem) continue;
+            
+            double spriteX = sprite.x - player.x;
+            double spriteY = sprite.y - player.y;
+            double invDet = 1.0 / (player.planeX * player.dirY - player.dirX * player.planeY);
+            double transformX = invDet * (player.dirY * spriteX - player.dirX * spriteY);
+            double transformY = invDet * (-player.planeY * spriteX + player.planeX * spriteY);
+            
+            if (transformY > 0) {
+                int spriteScreenX = int((screenWidth / 2) * (1 + transformX / transformY));
+                int spriteWidth = std::abs(int(screenHeight / transformY));
+                if (screenWidth / 2 > spriteScreenX - spriteWidth / 2 && screenWidth / 2 < spriteScreenX + spriteWidth / 2) {
+                    if (transformY < 15.0) {
+                        bool hitWall = false;
+                        double dxLine = sprite.x - player.x;
+                        double dyLine = sprite.y - player.y;
+                        double dist = std::sqrt(dxLine*dxLine + dyLine*dyLine);
+                        int steps = std::max(1, (int)(dist * 10));
+                        for (int i = 0; i <= steps; i++) {
+                            double cx = player.x + dxLine * ((double)i / steps);
+                            double cy = player.y + dyLine * ((double)i / steps);
+                            if (!isWalkable((int)cx, (int)cy)) {
+                                hitWall = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hitWall) {
+                            int damage = 35;
+                            if (wpn == 0) damage = 15; // Pistole
+                            else if (wpn == 1) damage = 10; // Chaingun
+                            else if (wpn == 2) damage = std::max(5, 100 - (int)(dist * 15)); // Coachgun dynamický damage
+                            else if (wpn == 3) damage = 50; // Skeleton
+                            
+                            sprite.hp -= damage;
+                            sprite.damageTimer = 0.2;
+                            if (sprite.hp <= 0 && sprite.state != 0) {
+                                playerScore += enemyTypes[sprite.type].scoreValue;
+                                sprite.state = 0;
+                                sprite.animTimer = 0;
+                                sprite.frameIndex = 0;
+                                sprite.deadTimer = 5.0;
+                                if (sprite.type >= 0 && sprite.type < enemyTypes.size()) {
+                                    playSound(enemyTypes[sprite.type].soundDeath, enemyTypes[sprite.type].soundDeathSamples, enemyTypes[sprite.type].soundDeathRate, enemyTypes[sprite.type].soundDeathChannels);
+                                }
+                            } else if (sprite.hp > 0 && sprite.state != 0) {
+                                sprite.state = 2;
+                                sprite.animTimer = 0;
+                                sprite.frameIndex = 0;
+                                if (sprite.type >= 0 && sprite.type < enemyTypes.size()) {
+                                    playSound(enemyTypes[sprite.type].soundPain, enemyTypes[sprite.type].soundPainSamples, enemyTypes[sprite.type].soundPainRate, enemyTypes[sprite.type].soundPainChannels);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+void Engine::resetGame() {
+    player.hp = 100;
+    player.x = 2.0;
+    player.y = 2.0;
+    player.z = 0;
+    player.vz = 0;
+    player.dirX = -1.0;
+    player.dirY = 0.0;
+    player.planeX = 0.0;
+    player.planeY = 0.66;
+    playerDamageTimer = 0.0;
+    playerScore = 0;
+    enemySpawnTimer = 4.0;
+    gameOverTimer = 0.0;
+
+    player.currentWeapon = 0;
+    for (int i = 0; i < 5; i++) {
+        player.hasWeapon[i] = false;
+        player.ammo[i] = 0;
+    }
+    player.hasWeapon[0] = true;
+    player.ammo[0] = -1;
+
+    isShooting = false;
+    shootTimer = 0.0;
+    weaponFrameIndex = 0;
+    weaponAnimTimer = 0.0;
+
+    for (int x = 0; x < 32; x++) {
+        for (int y = 0; y < 32; y++) {
+            doorStates[x][y] = 0;
+            doorOffsets[x][y] = 0.0;
+        }
+    }
+
+    sprites.clear();
+    sprites = {
+        {8.5, 8.5, 0, 0, 100, 1, 0.0, 8.5, 8.5, 0.0, 0.0, 0, 0.0},
+        {10.5, 9.5, 0, 0, 100, 1, 0.0, 10.5, 9.5, 0.0, 0.0, 0, 0.0},
+        {13.5, 3.5, 0, 0, 100, 1, 0.0, 13.5, 3.5, 0.0, 0.0, 0, 0.0},
+        {22.5, 15.5, 0, 1, 200, 1, 0.0, 22.5, 15.5, 0.0, 0.0, 0, 0.0},
+        {20.5, 20.5, 0, 1, 200, 1, 0.0, 20.5, 20.5, 0.0, 0.0, 0, 0.0},
+        {5.5, 25.5, 0, 0, 100, 1, 0.0, 5.5, 25.5, 0.0, 0.0, 0, 0.0},
+        {15.5, 28.5, 0, 1, 200, 1, 0.0, 15.5, 28.5, 0.0, 0.0, 0, 0.0},
+        {28.5, 4.5, 0, 2, 300, 1, 0.0, 28.5, 4.5, 0.0, 0.0, 0, 0.0},
+    };
+
+    struct ItemSpawn { double x, y; int type; };
+    std::vector<ItemSpawn> spawns = {
+        {2.5, 2.5, 0}, {15.5, 6.5, 0}, {15.5, 21.5, 0},
+        {10.5, 2.5, 1}, {5.5, 15.5, 1}, {28.5, 28.5, 1},
+        {16.5, 2.5, 1}, {27.5, 2.5, 1}, {20.5, 15.5, 1},
+        {5.5, 21.5, 2},
+        {12.5, 15.5, 3}
+    };
+    for (const auto& spawn : spawns) {
+        sprites.push_back({spawn.x, spawn.y, 0, spawn.type, 100, 1, 0.0, spawn.x, spawn.y, 0.0, 0.0, 0, 0.0, true});
+    }
 }

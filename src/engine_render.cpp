@@ -187,10 +187,14 @@ void Engine::render() {
 
         // --- B. VYKRESLENÍ ZBRANĚ Z POHLEDU PRVNÍ OSOBY ---
         int bobOffset = isMoving ? (int)(std::abs(std::sin(weaponBobTime * 8.0)) * 20.0) : 0;
-        int recoilOffset = isShooting ? 40 : 0; // Zbraň se posune dolů při výstřelu
+        int recoilOffset = (isShooting && weaponFrameIndex < 2) ? 40 : 0; // Zbraň se posune dolů pouze při výstřelu, ne při celé animaci
 
-        if (!weaponFrames.empty() && weaponFrameIndex < weaponFrames.size()) {
-            auto& frame = weaponFrames[weaponFrameIndex];
+        int wpn = player.currentWeapon;
+        if (wpn >= 0 && wpn < weapons.size()) {
+            const auto& frameList = isShooting ? weapons[wpn].shootFrames : weapons[wpn].idleFrames;
+            if (!frameList.empty()) {
+                int frameIdx = weaponFrameIndex % frameList.size();
+                auto& frame = frameList[frameIdx];
             
             if (frame.w > 0 && frame.h > 0) {
                 // Doom sprity jsou dělané na 320x200 rozlišení. My máme screenWidth.
@@ -199,9 +203,14 @@ void Engine::render() {
                 int scaledW = frame.w * scale;
                 int scaledH = frame.h * scale;
                 
-                // Zbraň je vždy na spodním okraji a uprostřed
-                int startX = (screenWidth / 2) - (scaledW / 2);
-                int startY = screenHeight - scaledH + bobOffset + recoilOffset;
+                int startX, startY;
+                if (frame.hasOffset) {
+                    startX = (-frame.offsetX) * scale;
+                    startY = screenHeight - (200 + frame.offsetY) * scale + bobOffset + recoilOffset;
+                } else {
+                    startX = (screenWidth / 2) - (scaledW / 2);
+                    startY = screenHeight - scaledH + bobOffset + recoilOffset;
+                }
                 
                 for (int y = 0; y < scaledH; y++) {
                     for (int x = 0; x < scaledW; x++) {
@@ -220,7 +229,7 @@ void Engine::render() {
                 }
             }
         }
-
+        }
 
         // --- C. VYKRESLENÍ HUDu ---
         drawRect(20, screenHeight - 40, 200, 20, 0xFFFF0000); 
@@ -228,7 +237,7 @@ void Engine::render() {
         drawRect(20, screenHeight - 40, hpWidth, 20, 0xFF00FF00); 
         drawText("HP: " + std::to_string(player.hp), 25, screenHeight - 38, 0xFFFFFFFF, 2);
         
-        int wpn = player.currentWeapon;
+        wpn = player.currentWeapon;
         if (wpn >= 0 && wpn < 5 && player.ammo[wpn] != -1) {
             std::string ammoStr = "AMMO: " + std::to_string(player.ammo[wpn]);
             drawText(ammoStr, 250, screenHeight - 38, 0xFFFFFF00, 2); // Yellow color for ammo
