@@ -17,7 +17,14 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 set(CMAKE_BUILD_TYPE Release)
 # Přidání spustitelného souboru a zdrojových kódů
-add_executable(${PROJECT_NAME} src/main.cpp src/engine.cpp src/raycaster.cpp)
+add_executable(${PROJECT_NAME} 
+    src/main.cpp 
+    src/engine_core.cpp 
+    src/engine_update.cpp 
+    src/engine_render.cpp 
+    src/engine_assets.cpp 
+    src/raycaster.cpp
+)
 
 # Řekneme kompilátoru, kde má hledat hlavičkové soubory (.hpp a .h)
 target_include_directories(${PROJECT_NAME} PRIVATE include lib)

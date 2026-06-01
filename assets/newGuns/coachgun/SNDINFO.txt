@@ -1,0 +1,4 @@
+coachgun/reload1	DSCOCHR1
+coachgun/reload2	DSCOCHR2
+coachgun/reload3	DSCOCHR3
+coachgun/fire		DSCOCHFG

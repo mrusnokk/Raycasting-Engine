@@ -1,0 +1,115 @@
+Actor HeavyChaingun : chaingun
+{
+	Weapon.AmmoType2 "clip"
+	Weapon.AmmoUse2 1
+	AttackSound "weapons/hchngun"
+	states
+	{
+	Spawn:
+		HCNG A -1
+		Stop
+	Ready:
+		HCGG A 1 A_WeaponReady
+		Loop
+	Deselect:
+		HCGG A 1 A_Lower
+		Loop
+	Select:
+		HCGG A 1 A_Raise
+		Loop
+	Fire:
+		TNT1 A 0 A_Jump(128,"SmallFire1")
+	LargeFire1:
+		HCGF A 0 A_GunFlash
+	    HCGF A 2 bright A_FireBullets (3, 2, 1, 7, "BulletPuff")
+		HCGF B 2 bright
+		TNT1 A 0 A_Jump(128,"SmallFire2")
+	LargeFire2:
+		HCGF A 0 A_GunFlash
+		HCGF C 2 bright A_FireBullets (3, 2, -1, 7, "BulletPuff")
+		HCGF D 2 bright
+		HCGF A 0 A_Refire
+		goto Spindown
+	SmallFire1:
+		HCGF A 0 A_GunFlash
+	    HCGF E 2 bright A_FireBullets (3, 2, 1, 7, "BulletPuff")
+		HCGF B 2 bright
+		TNT1 A 0 A_Jump(128,"LargeFire2")
+	SmallFire2:
+		HCGF A 0 A_GunFlash
+		HCGF F 2 bright A_FireBullets (3, 2, -1, 7, "BulletPuff")
+		HCGF D 2 bright
+		HCGF A 0 A_Refire
+		goto Spindown
+	Spindown:
+	    HCGG AB 2 A_Refire
+		HCGG CD 3 A_Refire
+		Goto Ready
+	AltFire:
+		HCGF A 0 A_GunFlash
+	    HCGF A 1 bright A_FireBullets (2, 1.5, -1, 7, "BulletPuff")
+		HCGF E 1 bright
+		HCGG A 2
+		HCGF A 0 A_GunFlash
+		HCGF A 0 A_JumpIfNoAmmo("AltHold")
+		HCGF B 2 bright A_FireBullets (2, 1.5, -1, 7, "BulletPuff")
+		HCGG B 2
+		HCGF A 0 A_GunFlash
+		HCGF A 0 A_JumpIfNoAmmo("AltHold")
+		HCGF C 1 bright A_FireBullets (3, 2, -1, 7, "BulletPuff")
+		HCGF F 1 bright
+		HCGG C 1
+		HCGF A 0 A_GunFlash
+		HCGF A 0 A_JumpIfNoAmmo("AltHold")
+		HCGF D 2 bright A_FireBullets (3, 2, -1, 7, "BulletPuff")
+		HCGG D 1
+		HCGF A 0 A_GunFlash
+		HCGF A 0 A_JumpIfNoAmmo("AltHold")
+		HCGF A 1 bright A_FireBullets (4, 3, -1, 7, "BulletPuff")
+		HCGF E 1 bright
+		HCGF A 0 A_GunFlash
+		HCGF A 0 A_JumpIfNoAmmo("AltHold")
+		HCGF B 2 bright A_FireBullets (4, 3, -1, 7, "BulletPuff")
+		HCGF A 0 A_GunFlash
+		HCGF A 0 A_JumpIfNoAmmo("AltHold")
+		HCGF C 1 bright A_FireBullets (5, 4, -1, 7, "BulletPuff")
+		HCGF D 1 bright
+		HCGG A 0 A_Refire
+		goto AltSpindown
+	AltHold:
+		TNT1 A 0 A_Jump(128,"SmallAltFire1")
+	LargeAltFire1:
+		HCGF A 0 A_GunFlash
+	    HCGF A 1 bright A_FireBullets (6, 5, -1, 7, "BulletPuff")
+		HCGF B 1 bright
+		TNT1 A 0 A_Jump(128,"SmallAltFire2")
+	LargeAltFire2:
+		HCGF A 0 A_GunFlash
+		HCGF C 1 bright A_FireBullets (6, 5, -1, 7, "BulletPuff")
+		HCGF D 1 bright
+		HCGF A 0 A_Refire
+		goto AltSpindown
+	SmallAltFire1:
+		HCGF A 0 A_GunFlash
+	    HCGF E 1 bright A_FireBullets (6, 5, -1, 7, "BulletPuff")
+		HCGF B 1 bright
+		TNT1 A 0 A_Jump(128,"LargeAltFire2")
+	SmallAltFire2:
+		HCGF A 0 A_GunFlash
+		HCGF F 1 bright A_FireBullets (6, 5, -1, 7, "BulletPuff")
+		HCGF D 1 bright
+		HCGF A 0 A_Refire
+		goto AltSpindown
+	AltSpindown:
+	    HCGG AB 1 A_Refire
+		HCGG CD 2 A_Refire
+		HCGG AB 3 A_Refire
+		HCGG CD 4 A_Refire
+		Goto Ready
+	Flash:
+		TNT1 A 1 Bright A_Light1
+		TNT1 A 1 Bright A_Light2
+		TNT1 A 1 A_Light1
+		Goto LightDone
+	}
+}

@@ -200,7 +200,7 @@ void Raycaster::render(std::vector<uint32_t>& framebuffer, int screenWidth, int 
     // se na konci své platnosti (zde na konci funkce render) bezpečně spojí sám!
 }
 
-void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidth, int screenHeight, const Player& player, std::vector<Sprite>& sprites, const std::vector<double>& zBuffer, const std::vector<EnemyDef>& enemyTypes, const std::vector<std::vector<SpriteFrame>>& projectileTypes) {
+void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidth, int screenHeight, const Player& player, std::vector<Sprite>& sprites, const std::vector<double>& zBuffer, const std::vector<EnemyDef>& enemyTypes, const std::vector<std::vector<SpriteFrame>>& projectileTypes, const std::vector<ItemDef>& itemTypes) {
     std::vector<std::pair<double, int>> spriteOrder(sprites.size());
     for(size_t i = 0; i < sprites.size(); i++) {
         spriteOrder[i].first = ((player.x - sprites[i].x) * (player.x - sprites[i].x) + (player.y - sprites[i].y) * (player.y - sprites[i].y));
@@ -224,13 +224,28 @@ void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidt
         int spriteScreenX = int((screenWidth / 2) * (1 + transformX / transformY));
         int vMoveScreen = int(0.0 / transformY);
 
-        int spriteHeight = abs(int(screenHeight / (transformY)));
+        double scaleY = sprites[spriteIdx].isItem ? 0.3 : 1.0;
+        double scaleX = 1.0;
+        if (sprites[spriteIdx].isItem) {
+            // type 0=medkit, 1=ammo -> scaleX 0.3 (square)
+            // type 2=chaingun, 3=coachgun -> scaleX 1.2 (stretched)
+            if (sprites[spriteIdx].type == 0 || sprites[spriteIdx].type == 1) scaleX = 0.3;
+            else scaleX = 1.2;
+        }
+        int unscaledHeight = abs(int(screenHeight / (transformY)));
+        int spriteHeight = unscaledHeight * scaleY;
+        
         int drawStartY = -spriteHeight / 2 + screenHeight / 2 + vMoveScreen;
+        if (sprites[spriteIdx].isItem) {
+            drawStartY = (screenHeight / 2 + unscaledHeight / 2) - spriteHeight + vMoveScreen;
+        }
+        int startY_unclamped = drawStartY;
         if (drawStartY < 0) drawStartY = 0;
-        int drawEndY = spriteHeight / 2 + screenHeight / 2 + vMoveScreen;
+        
+        int drawEndY = startY_unclamped + spriteHeight; // Before clamping
         if (drawEndY >= screenHeight) drawEndY = screenHeight - 1;
 
-        int spriteWidth = abs(int(screenHeight / (transformY)));
+        int spriteWidth = abs(int(screenHeight / (transformY))) * scaleX;
         int drawStartX = -spriteWidth / 2 + spriteScreenX;
         if (drawStartX < 0) drawStartX = 0;
         int drawEndX = spriteWidth / 2 + spriteScreenX;
@@ -243,7 +258,11 @@ void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidt
         int type = sprites[spriteIdx].type;
         const std::vector<SpriteFrame>* animFrames = nullptr;
         
-        if (sprites[spriteIdx].isProjectile) {
+        if (sprites[spriteIdx].isItem) {
+            if (type >= 0 && type < itemTypes.size()) {
+                animFrames = &itemTypes[type].frames;
+            }
+        } else if (sprites[spriteIdx].isProjectile) {
             if (type >= 0 && type < projectileTypes.size()) {
                 animFrames = &projectileTypes[type];
             }
@@ -273,8 +292,7 @@ void Raycaster::renderSprites(std::vector<uint32_t>& framebuffer, int screenWidt
             
             if (transformY > 0 && stripe > 0 && stripe < screenWidth && transformY < zBuffer[stripe]) {
                 for(int y = drawStartY; y < drawEndY; y++) {
-                    int d = (y - vMoveScreen) * 256 - screenHeight * 128 + spriteHeight * 128;
-                    int texY = ((d * texHeight) / spriteHeight) / 256;
+                    int texY = ((y - startY_unclamped) * texHeight) / spriteHeight;
                     if (texY < 0) texY = 0;
                     if (texY >= texHeight) texY = texHeight - 1;
                     

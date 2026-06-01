@@ -1,0 +1,8 @@
+Name: Coachgun
+Class: 3
+Type: Hitscan
+Palette: Doom
+Summon: coachgun
+Ammo Type: Shell
+Altfire: No
+Powered Mode: No

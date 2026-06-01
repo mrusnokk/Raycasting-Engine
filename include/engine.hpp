@@ -10,7 +10,8 @@
 enum class GameState {
     MENU,
     PLAYING,
-    GAME_OVER
+    GAME_OVER,
+    SETTINGS
 };
 
 #define TEX_WIDTH 64
@@ -38,18 +39,74 @@ public:
 private:
     GameState currentState = GameState::MENU;
     int menuSelection = 0;
+    int settingsSelection = 0;
+    double mouseSensitivity = 0.2;
+    float globalVolume = 1.0f;
     bool isFullscreen = false;
 
     void drawMenu(); // Nová metoda pro vykreslení menu
     void handleMenuInput(SDL_Event& event); // Oddělená logika vstupů pro menu
+    void drawSettings();
+    void handleSettingsInput(SDL_Event& event);
+    void changeResolution(int w, int h);
+    void setGlobalVolume(float vol);
     
     Raycaster raycaster;
-    void processInput(double deltaTime); // <--- Přidán parametr
+    
+    /**
+     * @brief Zpracovává všechny herní vstupy a updatuje herní logiku.
+     * Dříve jedna velká funkce, nyní rozdělená na menší pro lepší čitelnost.
+     * @param deltaTime Čas uplynulý od posledního snímku v sekundách.
+     */
+    void update(double deltaTime);
+
+    /**
+     * @brief Zpracovává události z klávesnice a systému (např. zavření okna).
+     */
+    void handleEvents(double deltaTime);
+
+    /**
+     * @brief Řeší pohyb hráče, fyziku, kolize a střelbu.
+     */
+    void updatePlayer(double deltaTime);
+
+    /**
+     * @brief Řeší umělou inteligenci nepřátel, projektily a jejich interakce.
+     */
+    void updateEntities(double deltaTime);
+
+    /**
+     * @brief Zpracovává otevírání a zavírání dveří v závislosti na čase a pozici hráče.
+     */
+    void updateDoors(double deltaTime);
+
+    /**
+     * @brief Obsluhuje automatické nasazování nepřátel v čase (Arcade mód).
+     */
+    void spawnEnemies(double deltaTime);
+
+    /**
+     * @brief Inicializuje SDL knihovnu, okno, renderer a audio zařízení.
+     */
+    void initSDL();
+
+    /**
+     * @brief Načítá všechny statické a dynamické textury do paměti.
+     */
+    void loadTextures();
+
+    /**
+     * @brief Načítá všechny zvukové efekty (STB Vorbis) do paměti.
+     */
+    void loadAudio();
+
     void render();
 
     // Nové metody pro kreslení 2D prvků
     void drawRect(int startX, int startY, int width, int height, uint32_t color);
+    void drawRectClipped(int startX, int startY, int width, int height, uint32_t color, int clipX, int clipY, int clipW, int clipH);
     void drawText(const std::string& text, int x, int y, uint32_t color, int scale = 2);
+    void drawTextClipped(const std::string& text, int x, int y, int clipX, int clipY, int clipW, int clipH, uint32_t color, int scale = 2);
     void drawMinimap();
 
     int screenWidth;
@@ -61,11 +118,14 @@ private:
     int highScore = 0;
     void loadHighScore();
     void saveHighScore();
+    void loadSettings();
+    void saveSettings();
 
     double enemySpawnTimer = 0.0;
 
     // Proměnné pro zbraň
     bool isMoving;
+    bool wasMoving = false;
     double weaponBobTime;
     bool isShooting = false;
     double shootTimer = 0.0;
@@ -73,8 +133,11 @@ private:
     double gameOverTimer = 0.0;
 // UI textury (dynamické velikosti)
     std::vector<SpriteFrame> weaponFrames;
+    std::vector<std::vector<SpriteFrame>> allWeaponFrames;
     std::vector<EnemyDef> enemyTypes;
+    std::vector<ItemDef> itemTypes;
     void loadEnemyDef(const std::string& directoryPath, EnemyDef& def);
+    void loadWeaponDef(const std::string& directoryPath, std::vector<SpriteFrame>& frames);
     std::vector<std::vector<SpriteFrame>> projectileTypes;
     int weaponFrameIndex = 0;
     double weaponAnimTimer = 0.0;

@@ -1,0 +1,7 @@
+Submitted: Z86
+Decorate: Z86
+Sounds: Raven Software (Quake 4)
+Sprites: Eriance
+Sprite Edit: Z86 (In-between frames)
+Idea Base: Quake 2 and Unreal Tournament Chaingun
+ACS: No

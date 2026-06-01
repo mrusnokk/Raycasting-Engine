@@ -1,0 +1,11 @@
+Weapons/RevSkullFire	REVFIRE
+Weapons/RocketFire      ROKFIRE
+Rocket/SoulRocket       SOULROK
+Explosion/RevUhOh       REVAAH
+Explosion/BOOM          ROKEXPL
+
+$random RevBounce { Bounce1 Bounce2 Bounce3 Bounce4 }
+Bounce1		CRUNCH1
+Bounce2		CRUNCH2
+Bounce3		CRUNCH3
+Bounce4		CRUNCH4

@@ -1,0 +1,53 @@
+actor Coachgun : DoomWeapon
+{
+  Weapon.SelectionOrder 1300
+  Weapon.AmmoUse 2
+  Weapon.AmmoGive 8
+  Weapon.AmmoType "Shell"
+  Decal "BulletChip"
+  Weapon.slotnumber 3
+  Inventory.PickupMessage "You got the coach gun!"
+  Obituary "%o was blown away by %k's coachgun."
+  States
+  {
+  Ready:
+    COCH A 1 A_WeaponReady
+    Loop
+  Deselect:
+    COCH A 1 A_Lower
+    Loop
+  Select:
+    COCH A 1 A_Raise
+    Loop
+  Fire:
+    COCH A 3
+    COCH B 1 bright A_FireBullets (5, 4, 20, 5, "BulletPuff")
+    COCH B 0 bright A_PlaySoundEx ("coachgun/fire", "soundslot5")
+	COCH B 0 bright A_Gunflash
+    COCH B 0 bright A_Quake (3, 2, 0, 1)
+    COCH C 1 bright A_SetPitch (pitch-2)
+    COCH D 1 A_SetPitch (pitch+0.4)
+    COCH AAAA 2 A_SetPitch (pitch+0.4)
+    COCH A 4
+    COCH EFG 2
+    COCH H 2 A_PlaySound ("coachgun/reload1")
+    COCH I 2
+    COCH J 12
+    COCH KLMNO 1
+    COCH P 4 A_PlaySound ("coachgun/reload2")
+    COCH QRSTU 1
+    COCH V 8
+    COCH W 2
+    COCH X 2 A_PlaySound ("coachgun/reload3")
+    COCH GFE 2
+    COCH A 7 A_Refire
+    Goto Ready
+  Flash:
+    TNT1 A 4 Bright A_Light1
+    TNT1 A 3 Bright A_Light2
+    Goto LightDone
+  Spawn:
+    COCP A -1
+    Stop
+  }
+}

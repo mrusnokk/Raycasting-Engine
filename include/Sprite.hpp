@@ -31,6 +31,19 @@ struct EnemyDef {
     int soundAttackChannels = 1;
 };
 
+enum class ItemType {
+    MEDKIT,
+    AMMO,
+    WEAPON
+};
+
+struct ItemDef {
+    std::vector<SpriteFrame> frames;
+    ItemType type;
+    int amount; // HP / Ammo amount
+    int weaponId; // if it's a weapon
+};
+
 struct Sprite {
     double x, y;
     int texture;
@@ -44,6 +57,9 @@ struct Sprite {
     double animTimer = 0.0;
     int frameIndex = 0;
     double attackCooldown = 0.0;
+    
+    // Item fields
+    bool isItem = false;
     
     // Projectile fields
     bool isProjectile = false;

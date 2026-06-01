@@ -1,0 +1,8 @@
+Name: Heavy Chaingun
+Class: 6
+Type: Hitscan
+Palette: Doom
+Summon: HeavyChaingun
+Ammo Type: Clip
+Powered Mode: No (but has altfire)
+Added States: No
