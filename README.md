@@ -8,7 +8,7 @@ Hra obsahuje:
 - Správu zbraní (Pistole, Brokovnice, Rotační kulomet), každá má vlastní logiku, rychlost palby a poškození.
 - Umělou inteligenci nepřátel, kteří hledají cestu k hráči.
 - Interaktivní prostředí (otevírání dveří, sbírání munice a lékárniček).
-- Dynamické stíny na podlaze a texturování zdí/stropů s využitím z-bufferu.
+- Texturování podlah a zdí s využitím z-bufferu a multithreadingu pro optimální výkon.
 
 ## Jak to funguje a jak hru spustit
 Projekt využívá jako sestavovací systém CMake. 
