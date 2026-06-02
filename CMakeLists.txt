@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Název a jazyk projektu
-project(voxel_project LANGUAGES CXX)
+project(raycasting_engine LANGUAGES CXX)
 
 # Nekompromisně vyžadujeme C++20 (kvůli std::jthread atd.)
 set(CMAKE_CXX_STANDARD 20)

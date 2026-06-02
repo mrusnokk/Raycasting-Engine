@@ -1,52 +1,42 @@
-# Retro Raycasting Engine in C++ 🎮
+# Doom Clone - Raycasting FPS v C++ a SDL3
 
-Welcome to this custom-built 3D Raycasting Engine written in raw C++! 
-This project is deeply inspired by classic 90s shooters like *DOOM* and *Wolfenstein 3D*, built from scratch to render a pseudo-3D world using software raycasting and SDL3.
+## O projektu
+Tento projekt je semestrální práce z předmětu zaměřeného na programování v C++. Jedná se o klon klasické retro střílečky z 90. let (jako je Doom nebo Wolfenstein 3D). Hra je kompletně napsaná v jazyce C++ s využitím knihovny SDL3 pro vykreslování obrazu a práci se zvukem. Vykreslování 3D prostředí probíhá pomocí vlastní implementace Raycastingu.
 
-## 🌟 Key Features
+Hra obsahuje:
+- Raycasting pro generování 3D labyrintu.
+- Správu zbraní (Pistole, Brokovnice, Rotační kulomet), každá má vlastní logiku, rychlost palby a poškození.
+- Umělou inteligenci nepřátel, kteří hledají cestu k hráči.
+- Interaktivní prostředí (otevírání dveří, sbírání munice a lékárniček).
+- Dynamické stíny na podlaze a texturování zdí/stropů s využitím z-bufferu.
 
-* **Software Raycaster:** Fully custom raycasting engine written in C++ running on the CPU. It features rendering of textured walls, floors, ceilings, and dynamic depth-sorting.
-* **8-Directional Sprites:** Full support for retro 8-angle sprite rendering. Enemies dynamically face the player just like in the original DOOM.
-* **Advanced AI & Line of Sight:** Enemies use smart distance checking and rigorous line-of-sight algorithms to hunt down the player and engage in combat without "wallhacking".
-* **Animated Weapons & Projectiles:** Complete state-machines for weapon bobbing, firing animations, and flying energetic projectiles.
-* **Integrated Audio System:** Features a built-in sound mixer using `SDL_Audio` and `stb_vorbis` for playing multiple overlapping sounds (footsteps, enemy alerts, dynamic pain and death sounds, weapon firing).
-* **Interactive Environment:** Functional minimap, sliding doors, and collision detection.
+## Jak to funguje a jak hru spustit
+Projekt využívá jako sestavovací systém CMake. 
 
-## 🛠️ Technology Stack
+Kompilace:
+```bash
+cmake -B build
+cmake --build build --config Release
+```
 
-* **Language:** C++17
-* **Graphics/Windowing:** SDL3 (Simple DirectMedia Layer)
-* **Audio:** SDL_Audio + stb_vorbis
-* **Build System:** CMake
+Spuštění:
+Vzniklý spustitelný soubor (např. `raycasting_engine.exe`) je nutné spustit ze složky, ze které má přístup ke složce `assets/`, která obsahuje veškeré textury a zvuky.
 
-## 🚀 How to Build
+## Návrh architektury
+Původní návrh počítal s jednodušším procedurálním přístupem, ale s přibývající složitostí byl kód refaktorován do plně objektového modelu (OOP). Bylo dbáno na silné zapouzdření (encapsulation) a rozdělení logiky do separátních modulů:
 
-Make sure you have a modern C++ compiler (e.g., GCC, MSVC, Clang) and CMake installed. 
-You will also need the SDL3 development libraries.
+- **Engine (`engine.hpp`, `engine_core.cpp`, `engine_update.cpp`, `engine_render.cpp`, `engine_assets.cpp`)**: Třída zodpovídající za herní smyčku, načítání textur a ošetření vstupů. Její rozdělení do vícero `.cpp` souborů zabraňuje vzniku masivního nepřehledného "špagetového" kódu.
+- **Raycaster (`raycaster.hpp`, `raycaster.cpp`)**: Zapouzdřená matematická logika pro výpočet vzdáleností parsek, texturování zdí, podlah a vykreslování spritů se z-bufferem.
+- **Datové struktury (`Sprite.hpp`, `player.hpp`)**: Udržují stav jednotlivých entit (hráč, nepřátelé, předměty).
 
-1. Clone this repository.
-2. Ensure SDL3 is installed and correctly configured in your PATH or CMake environment.
-3. Generate the build files:
-   ```bash
-   mkdir build
-   cd build
-   cmake ..
-   ```
-4. Compile the project:
-   ```bash
-   cmake --build .
-   ```
+Tento přístup byl zvolen pro maximální čitelnost a oddělení "herní logiky" (model) od "vykreslování" (view).
 
-## 🎮 How to Play
+## Zajímavé problémy a řešení
+1. **Z-Buffer a vykreslování spritů**: Standardní raycasting snadno vykreslí zdi, ale dynamické řazení entit a nepřátel, aby se nepřekrývali navzájem, bylo poměrně komplexní. K vyřešení byl naprogramován 1D Z-Buffer a následné třídění (sort) objektů podle vzdálenosti.
+2. **Přesné načasování animací zbraní**: Při rapidním střílení (jako u Chaingun) bylo obtížné synchronizovat animace se samotnými výstřely a zamezit "sekání" obrazu. Problém vyřešil přesný časovač pracující s hodnotou `deltaTime`, který správně inkrementuje `frameIndex`.
+3. **Offsety ve spritových animacích (.PNG)**: Doomovské sprity zbraní používají rozdílná rozlišení u jednotlivých snímků a posuny (`grAb` offset chunk v PNG). K úspěšnému vyřešení bylo nutné naprogramovat vlastní detekci tohoto bloku přímo uvnitř PNG souborů během načítání přes `fread` a korekce následně promítnout do Raycasteru.
 
-Run the compiled executable `voxel_project.exe`.
+## Co mě potrápilo a co by šlo udělat lépe
+Poměrně mě potrápila detekce kolizí s posuvnými dveřmi, protože bylo snadné, aby hráč "prošel" skrz dveře těsně před jejich uzavřením. 
 
-**Controls:**
-* `W` `A` `S` `D` - Move and strafe
-* `Mouse` - Look around (turn left / right)
-* `Space` - Jump
-* `E` - Open doors
-* `Left Click` - Fire weapon
-
-## 📜 Credits
-Developed as an advanced C++ study project exploring the magic of retro 3D rendering algorithms.
+Do budoucna by se engine dal znatelně vylepšit použitím Spatial Partitioning stromu (např. BSP), díky čemuž by hra dokázala renderovat mnohem komplikovanější víceúrovňové mapy místo jednoduché sítě (mřížky). Také by prospělo přesunout herní nastavení z pevného zakódování (hardcode) do externích konfiguračních `.json` nebo `.ini` souborů.

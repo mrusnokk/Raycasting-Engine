@@ -7,20 +7,7 @@
 // Konstanty
 const double PI = 3.1415926535;
 
-bool isShooting = false;
-double shootTimer = 0.0;
-double weaponAnimTimer = 0.0;
-int weaponFrameIndex = 0;
 
-bool isMoving = false;
-double weaponBobTime = 0.0;
-double stepTimer = 0.0;
-
-uint32_t lastTime = 0;
-double playerDamageTimer = 0.0;
-int playerScore = 0;
-double enemySpawnTimer = 4.0;
-double gameOverTimer = 0.0;
 
 void Engine::handleEvents(double deltaTime) {
     SDL_Event event;
